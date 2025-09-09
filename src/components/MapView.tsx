@@ -1,10 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { MapPin, Navigation, Key } from "lucide-react";
+import { MapPin, Navigation } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { supabase } from "@/integrations/supabase/client";
 
 interface Alert {
   id: string;
@@ -43,6 +42,27 @@ const MapView = ({ alerts }: MapViewProps) => {
   const markers = useRef<mapboxgl.Marker[]>([]);
   const [mapboxToken, setMapboxToken] = useState("");
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [tokenError, setTokenError] = useState(false);
+
+  // Fetch Mapbox token on component mount
+  useEffect(() => {
+    const fetchMapboxToken = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-mapbox-token');
+        if (error) throw error;
+        if (data?.token) {
+          setMapboxToken(data.token);
+        } else {
+          setTokenError(true);
+        }
+      } catch (error) {
+        console.error('Error fetching Mapbox token:', error);
+        setTokenError(true);
+      }
+    };
+
+    fetchMapboxToken();
+  }, []);
 
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken) return;
@@ -117,12 +137,6 @@ const MapView = ({ alerts }: MapViewProps) => {
     }
   }, [alerts, isMapLoaded]);
 
-  const handleTokenSubmit = () => {
-    if (mapboxToken.trim()) {
-      // Token will be used in the useEffect above
-    }
-  };
-
   return (
     <Card className="h-full">
       <CardHeader>
@@ -132,31 +146,15 @@ const MapView = ({ alerts }: MapViewProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        {!mapboxToken ? (
+        {tokenError ? (
+          <div className="mx-6 mb-6 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+            <p className="text-sm text-destructive">
+              Mapbox token not configured. Please contact administrator.
+            </p>
+          </div>
+        ) : !mapboxToken ? (
           <div className="mx-6 mb-6 p-4 bg-muted/20 rounded-lg">
-            <div className="flex items-start space-x-3 mb-4">
-              <Key className="w-5 h-5 text-primary mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-foreground">Mapbox Token Required</h4>
-                <p className="text-sm text-muted-foreground">
-                  Enter your Mapbox public token to view the real map. Get yours at{" "}
-                  <a href="https://mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                    mapbox.com
-                  </a>
-                </p>
-              </div>
-            </div>
-            <div className="flex space-x-2">
-              <Input
-                placeholder="pk.eyJ1IjoiZXhhbXBsZSIsImEiOiJ..."
-                value={mapboxToken}
-                onChange={(e) => setMapboxToken(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={handleTokenSubmit} disabled={!mapboxToken.trim()}>
-                Load Map
-              </Button>
-            </div>
+            <p className="text-sm text-muted-foreground">Loading map...</p>
           </div>
         ) : (
           <div className="relative h-96 mx-6 mb-6 overflow-hidden rounded-lg">
