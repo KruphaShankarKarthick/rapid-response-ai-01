@@ -89,4 +89,6 @@ Why does our prototype stand out?
 
 👉 In short: **One simple button. Smart tech inside. Life-saving response outside.**
 
+GitHub Repository Link: https://github.com/KruphaShankarKarthick/rapid-response-ai-01
+Prototype Link: https://rapid-response-ai-01.vercel.app/
 
